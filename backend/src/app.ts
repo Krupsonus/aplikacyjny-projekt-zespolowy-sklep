@@ -3,11 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+import swaggerUiDist from 'swagger-ui-dist';
 
 import categoriesRouter from './routes/categories';
 import productsRouter   from './routes/products';
 import { errorHandler } from './middleware/errorHandler';
+
+// Absolute path to swagger-ui-dist static files (bundled JS + CSS)
+const swaggerDistPath = swaggerUiDist.getAbsoluteFSPath();
 
 const app  = express();
 const PORT = process.env.PORT ?? 3001;
@@ -101,12 +104,52 @@ const swaggerSpec = swaggerJsdoc({
   ],
 });
 
-// customCss: ' ' prevents swagger-ui-express from injecting literal "undefined" into the style block
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customCss: ' ' }));
+// ── Swagger / API docs ────────────────────────────────────────────────────────
+
+// Serve raw OpenAPI spec (used by the UI and useful for tooling)
+app.get('/api-docs/spec.json', (_req, res) => res.json(swaggerSpec));
+
+// Serve swagger-ui-dist static assets (JS, CSS) at /api-docs/assets/*
+app.use('/api-docs/assets', express.static(swaggerDistPath));
+
+// Serve the Swagger UI HTML page
+// Uses absolute asset paths (/api-docs/assets/...) to avoid relative-path issues
+app.get('/api-docs', (_req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TechShop API Docs</title>
+  <link rel="stylesheet" href="/api-docs/assets/swagger-ui.css">
+  <style>body { margin: 0; }</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="/api-docs/assets/swagger-ui-bundle.js"></script>
+  <script src="/api-docs/assets/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function () {
+      window.ui = SwaggerUIBundle({
+        url: '/api-docs/spec.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+        layout: 'StandaloneLayout'
+      });
+    };
+  </script>
+</body>
+</html>`);
+});
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products',   productsRouter);
+
+// Root redirect → API docs
+app.get('/', (_req, res) => res.redirect('/api-docs'));
 
 // Health check — used by Docker healthcheck and load balancers
 app.get('/health', (_req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
