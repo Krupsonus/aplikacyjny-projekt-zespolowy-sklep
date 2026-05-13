@@ -39,6 +39,12 @@ const router = Router();
  *           type: string
  *         example: laptops
  *         description: Category slug to filter by (e.g. "laptops", "smartphones")
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         example: laptop
+ *         description: Full-text search across product name and description (case-insensitive)
  *     responses:
  *       200:
  *         description: Paginated list of products
@@ -54,8 +60,17 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const page  = Math.max(1, parseInt(req.query.page  as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 12));
     const categorySlug = req.query.category as string | undefined;
+    const search       = (req.query.search as string | undefined)?.trim() || undefined;
 
-    const where = categorySlug ? { category: { slug: categorySlug } } : {};
+    const where = {
+      ...(categorySlug && { category: { slug: categorySlug } }),
+      ...(search && {
+        OR: [
+          { name:        { contains: search, mode: 'insensitive' as const } },
+          { description: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }),
+    };
 
     const [products, total] = await prisma.$transaction([
       prisma.product.findMany({

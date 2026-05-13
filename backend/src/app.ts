@@ -2,11 +2,13 @@ import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUiDist from 'swagger-ui-dist';
 
 import categoriesRouter from './routes/categories';
 import productsRouter   from './routes/products';
+import authRouter       from './routes/auth';
 import { errorHandler } from './middleware/errorHandler';
 
 // Absolute path to swagger-ui-dist static files (bundled JS + CSS)
@@ -32,6 +34,7 @@ app.use(
   }),
 );
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173', credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 
 // ── Swagger / OpenAPI ────────────────────────────────────────────────────────
@@ -45,6 +48,9 @@ const swaggerSpec = swaggerJsdoc({
     },
     servers: [{ url: `http://localhost:${PORT}`, description: 'Local development' }],
     components: {
+      securitySchemes: {
+        cookieAuth: { type: 'apiKey', in: 'cookie', name: 'token' },
+      },
       schemas: {
         ErrorResponse: {
           type: 'object',
@@ -85,8 +91,43 @@ const swaggerSpec = swaggerJsdoc({
             totalPages: { type: 'integer' },
           },
         },
+        UserResponse: {
+          type: 'object',
+          properties: {
+            id:        { type: 'integer' },
+            email:     { type: 'string', format: 'email' },
+            firstName: { type: 'string' },
+            lastName:  { type: 'string' },
+            role:      { type: 'string', enum: ['customer', 'admin'] },
+            createdAt: { type: 'string', format: 'date-time' },
+          },
+        },
+        RegisterRequest: {
+          type: 'object',
+          required: ['email', 'password', 'firstName', 'lastName'],
+          properties: {
+            email:     { type: 'string', format: 'email', example: 'jane@example.com' },
+            password:  { type: 'string', minLength: 8, example: 'Str0ngPass!' },
+            firstName: { type: 'string', example: 'Jane' },
+            lastName:  { type: 'string', example: 'Doe' },
+          },
+        },
+        LoginRequest: {
+          type: 'object',
+          required: ['email', 'password'],
+          properties: {
+            email:    { type: 'string', format: 'email', example: 'admin@techshop.com' },
+            password: { type: 'string', example: 'Admin1234!' },
+          },
+        },
       },
       responses: {
+        BadRequest: {
+          description: 'Validation error',
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+          },
+        },
         InternalError: {
           description: 'Unexpected server error',
           content: {
@@ -147,6 +188,7 @@ app.get('/api-docs', (_req, res) => {
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products',   productsRouter);
+app.use('/api/auth',       authRouter);
 
 // Root redirect → API docs
 app.get('/', (_req, res) => res.redirect('/api-docs'));
