@@ -1,4 +1,4 @@
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProducts } from '../api/products';
 import { fetchCategories } from '../api/categories';
@@ -9,11 +9,12 @@ const LIMIT = 12;
 export default function ProductsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categorySlug = searchParams.get('category') ?? undefined;
+  const search       = searchParams.get('search') ?? undefined;
   const page = parseInt(searchParams.get('page') ?? '1');
 
   const productsQuery = useQuery({
-    queryKey: ['products', { page, category: categorySlug }],
-    queryFn: () => fetchProducts({ page, limit: LIMIT, category: categorySlug }),
+    queryKey: ['products', { page, category: categorySlug, search }],
+    queryFn: () => fetchProducts({ page, limit: LIMIT, category: categorySlug, search }),
   });
 
   const categoriesQuery = useQuery({
@@ -73,7 +74,9 @@ export default function ProductsPage() {
       <div className="flex-1">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">
-            {categorySlug
+            {search
+              ? `Results for "${search}"`
+              : categorySlug
               ? categoriesQuery.data?.find((c) => c.slug === categorySlug)?.name ?? 'Products'
               : 'All Products'}
           </h1>

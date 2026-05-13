@@ -5,6 +5,7 @@ export async function fetchProducts(params: {
   page?: number;
   limit?: number;
   category?: string;
+  search?: string;
 }): Promise<ProductsPage> {
   const { data } = await client.get<ProductsPage>('/products', { params });
   return data;
