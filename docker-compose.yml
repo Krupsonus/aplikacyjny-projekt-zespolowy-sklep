@@ -46,6 +46,7 @@ services:
       PORT: "3001"
       NODE_ENV: development
       CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: dev-jwt-secret-change-in-production
     ports:
       - "3001:3001"
     volumes:
