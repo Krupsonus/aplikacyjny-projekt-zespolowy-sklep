@@ -1,6 +1,9 @@
-import { useParams, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchProduct } from '../api/products';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   laptops: '💻',
@@ -13,6 +16,10 @@ const CATEGORY_EMOJI: Record<string, string> = {
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const productId = parseInt(id ?? '');
+  const { user } = useAuth();
+  const { addItem } = useCart();
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
 
   const { data: product, isLoading, isError } = useQuery({
     queryKey: ['product', productId],
@@ -104,6 +111,18 @@ export default function ProductDetailPage() {
           {product.description && (
             <p className="leading-relaxed text-zinc-400">{product.description}</p>
           )}
+
+          <button
+            disabled={product.stock === 0 || adding}
+            onClick={async () => {
+              if (!user) { navigate('/login', { state: { from: `/products/${product.id}` } }); return; }
+              setAdding(true);
+              try { await addItem(product.id); } finally { setAdding(false); }
+            }}
+            className="mt-2 w-full rounded-lg bg-indigo-600 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {product.stock === 0 ? 'Out of Stock' : adding ? 'Adding…' : 'Add to Cart'}
+          </button>
         </div>
       </div>
     </div>

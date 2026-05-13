@@ -1,5 +1,8 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Product } from '../types';
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const CATEGORY_EMOJI: Record<string, string> = {
   laptops: '💻',
@@ -17,6 +20,18 @@ export default function ProductCard({ product }: Props) {
   const emoji = product.category
     ? (CATEGORY_EMOJI[product.category.slug] ?? '📦')
     : '📦';
+
+  const { user } = useAuth();
+  const { addItem } = useCart();
+  const navigate = useNavigate();
+  const [adding, setAdding] = useState(false);
+
+  async function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!user) { navigate('/login'); return; }
+    setAdding(true);
+    try { await addItem(product.id); } finally { setAdding(false); }
+  }
 
   return (
     <Link
@@ -36,9 +51,18 @@ export default function ProductCard({ product }: Props) {
         <h3 className="line-clamp-2 font-semibold leading-snug text-zinc-100 group-hover:text-white">
           {product.name}
         </h3>
-        <p className="mt-auto pt-3 text-lg font-bold text-indigo-300">
-          ${parseFloat(product.price).toFixed(2)}
-        </p>
+        <div className="mt-auto flex items-center justify-between pt-3">
+          <p className="text-lg font-bold text-indigo-300">
+            ${parseFloat(product.price).toFixed(2)}
+          </p>
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock === 0 || adding}
+            className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-indigo-500 hover:bg-indigo-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {adding ? '…' : product.stock === 0 ? '✗' : '+ Cart'}
+          </button>
+        </div>
       </div>
     </Link>
   );
