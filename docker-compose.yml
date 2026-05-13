@@ -31,6 +31,33 @@ services:
     restart: unless-stopped
 
 
+  # ---------------------------------------------------------------------------
+  # Backend — Node.js / Express API
+  # API:     http://localhost:3001
+  # Swagger: http://localhost:3001/api-docs
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      target: development          # uses tsx watch + volume mount for hot reload
+    container_name: techshop-be
+    environment:
+      DATABASE_URL: postgresql://techshop:techshop_pass@db:5432/techshop
+      PORT: "3001"
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount only source code — node_modules stay in the container image
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    depends_on:
+      db:
+        condition: service_healthy   # wait for DB init scripts to complete
+    restart: unless-stopped
+
+
 volumes:
   postgres_data:
     name: techshop-postgres-data
