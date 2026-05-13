@@ -1,0 +1,36 @@
+# =============================================================================
+# TechShop — Docker Compose
+# Start everything: docker compose up --build
+# Reset DB volumes: docker compose down -v
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Database — PostgreSQL 16
+  # Access: localhost:5432  user: techshop  pass: techshop_pass  db: techshop
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: techshop-db
+    environment:
+      POSTGRES_DB:       techshop
+      POSTGRES_USER:     techshop
+      POSTGRES_PASSWORD: techshop_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # SQL files in db/init/ are executed once on first container start (alphabetical order)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U techshop -d techshop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+
+volumes:
+  postgres_data:
+    name: techshop-postgres-data
