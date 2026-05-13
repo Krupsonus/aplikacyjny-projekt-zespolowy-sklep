@@ -58,6 +58,27 @@ services:
     restart: unless-stopped
 
 
+  # ---------------------------------------------------------------------------
+  # Frontend — React / Vite dev server
+  # App: http://localhost:5173
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    container_name: techshop-fe
+    environment:
+      VITE_API_URL: http://localhost:3001
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+
 volumes:
   postgres_data:
     name: techshop-postgres-data
