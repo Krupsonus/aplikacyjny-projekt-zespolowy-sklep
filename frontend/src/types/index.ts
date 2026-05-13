@@ -26,3 +26,24 @@ export interface ProductsPage {
   limit: number;
   totalPages: number;
 }
+
+export interface User {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: 'customer' | 'admin';
+  createdAt: string;
+}
+
+export interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface LoginData {
+  email: string;
+  password: string;
+}
