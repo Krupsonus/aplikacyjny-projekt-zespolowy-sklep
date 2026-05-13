@@ -9,6 +9,7 @@ import swaggerUiDist from 'swagger-ui-dist';
 import categoriesRouter from './routes/categories';
 import productsRouter   from './routes/products';
 import authRouter       from './routes/auth';
+import cartRouter       from './routes/cart';
 import { errorHandler } from './middleware/errorHandler';
 
 // Absolute path to swagger-ui-dist static files (bundled JS + CSS)
@@ -120,6 +121,40 @@ const swaggerSpec = swaggerJsdoc({
             password: { type: 'string', example: 'Admin1234!' },
           },
         },
+        AddCartItemRequest: {
+          type: 'object',
+          required: ['productId'],
+          properties: {
+            productId: { type: 'integer', example: 1 },
+            quantity:  { type: 'integer', minimum: 1, default: 1 },
+          },
+        },
+        UpdateCartItemRequest: {
+          type: 'object',
+          required: ['quantity'],
+          properties: {
+            quantity: { type: 'integer', minimum: 1, example: 2 },
+          },
+        },
+        CartItem: {
+          type: 'object',
+          properties: {
+            id:        { type: 'integer' },
+            cartId:    { type: 'integer' },
+            productId: { type: 'integer' },
+            quantity:  { type: 'integer' },
+            product:   { $ref: '#/components/schemas/ProductWithCategory' },
+          },
+        },
+        Cart: {
+          type: 'object',
+          properties: {
+            id:        { type: 'integer' },
+            userId:    { type: 'integer' },
+            createdAt: { type: 'string', format: 'date-time' },
+            items:     { type: 'array', items: { $ref: '#/components/schemas/CartItem' } },
+          },
+        },
       },
       responses: {
         BadRequest: {
@@ -189,6 +224,7 @@ app.get('/api-docs', (_req, res) => {
 app.use('/api/categories', categoriesRouter);
 app.use('/api/products',   productsRouter);
 app.use('/api/auth',       authRouter);
+app.use('/api/cart',       cartRouter);
 
 // Root redirect → API docs
 app.get('/', (_req, res) => res.redirect('/api-docs'));
