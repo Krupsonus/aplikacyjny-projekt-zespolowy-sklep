@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
+import CartDrawer from './CartDrawer';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 interface Props {
   children: React.ReactNode;
@@ -8,6 +10,7 @@ interface Props {
 
 export default function Layout({ children }: Props) {
   const { user, isLoading, logout } = useAuth();
+  const { totalItems, openCart } = useCart();
 
   return (
     <div className="min-h-screen bg-zinc-900 text-zinc-100">
@@ -23,12 +26,26 @@ export default function Layout({ children }: Props) {
           </div>
 
           <nav className="flex shrink-0 items-center gap-3 text-sm">
+            {/* Cart button — always visible */}
+            {user && (
+              <button
+                onClick={openCart}
+                className="relative rounded-lg border border-zinc-700 p-1.5 text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                aria-label="Open cart"
+              >
+                🛒
+                {totalItems > 0 && (
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                    {totalItems > 9 ? '9+' : totalItems}
+                  </span>
+                )}
+              </button>
+            )}
+
             {!isLoading && (
               user ? (
                 <>
-                  <span className="hidden text-zinc-400 sm:block">
-                    {user.firstName}
-                  </span>
+                  <span className="hidden text-zinc-400 sm:block">{user.firstName}</span>
                   <button
                     onClick={() => void logout()}
                     className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-300 transition hover:border-zinc-500 hover:text-white"
@@ -38,10 +55,7 @@ export default function Layout({ children }: Props) {
                 </>
               ) : (
                 <>
-                  <Link
-                    to="/login"
-                    className="text-zinc-300 transition hover:text-white"
-                  >
+                  <Link to="/login" className="text-zinc-300 transition hover:text-white">
                     Login
                   </Link>
                   <Link
@@ -56,6 +70,8 @@ export default function Layout({ children }: Props) {
           </nav>
         </div>
       </header>
+
+      <CartDrawer />
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
     </div>
   );
