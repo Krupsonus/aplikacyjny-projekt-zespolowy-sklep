@@ -13,7 +13,21 @@ const app  = express();
 const PORT = process.env.PORT ?? 3001;
 
 // ── Security & parsing middleware ────────────────────────────────────────────
-app.use(helmet());
+// CSP is configured to allow Swagger UI (needs unsafe-inline for its embedded scripts/styles)
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc:  ["'self'"],
+        scriptSrc:   ["'self'", "'unsafe-inline'"],
+        styleSrc:    ["'self'", "'unsafe-inline'"],
+        imgSrc:      ["'self'", 'data:', 'https:'],
+        fontSrc:     ["'self'", 'data:'],
+        connectSrc:  ["'self'"],
+      },
+    },
+  }),
+);
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173', credentials: true }));
 app.use(express.json());
 
@@ -79,14 +93,16 @@ const swaggerSpec = swaggerJsdoc({
       },
     },
   },
-  // swagger-jsdoc reads JSDoc comments directly from source — works with both .ts and .js
+  // swagger-jsdoc reads JSDoc comments from source files as plain text
+  // process.cwd() = /app in Docker; src/ is mounted from host
   apis: [
-    path.join(__dirname, 'routes', '*.ts'),
-    path.join(__dirname, 'routes', '*.js'),
+    path.join(process.cwd(), 'src', 'routes', '*.ts'),
+    path.join(process.cwd(), 'src', 'routes', '*.js'),
   ],
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// customCss: ' ' prevents swagger-ui-express from injecting literal "undefined" into the style block
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { customCss: ' ' }));
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 app.use('/api/categories', categoriesRouter);
